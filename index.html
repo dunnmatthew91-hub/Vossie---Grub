@@ -98,6 +98,9 @@
       font-size: 1.1em;
       font-weight: 600;
     }
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
@@ -133,12 +136,12 @@
           <option>Mbombela</option>
           <option>Potchefstroom</option>
         </select>
-        <button type="button" onclick="goToMenu()">Next</button>
+        <button type="button" id="nextBtn">Next</button>
       </div>
 
       <!-- Step 2: Menu Selection -->
-      <div id="menuStep" style="display:none">
-        <button type="button" class="backBtn" onclick="goToCampus()">← Back</button>
+      <div id="menuStep" class="hidden">
+        <button type="button" class="backBtn" id="toCampusBtn">← Back</button>
         <div class="muted" id="campusName"></div>
         <label style="font-weight: 600;">Choose items to order:</label>
         <ul class="menu-list" id="menuList"></ul>
@@ -149,12 +152,12 @@
             On some phones, tap outside the picker or use your keyboard’s 'Done'/'Enter' to select!
           </div>
         </div>
-        <button type="button" onclick="goToSummary()">Review Order</button>
+        <button type="button" id="reviewBtn">Review Order</button>
       </div>
 
       <!-- Step 3: Order Summary -->
-      <div id="summaryStep" style="display:none">
-        <button type="button" class="backBtn" onclick="goToMenu()">← Back</button>
+      <div id="summaryStep" class="hidden">
+        <button type="button" class="backBtn" id="toMenuBtn">← Back</button>
         <h3>Order Summary</h3>
         <div class="muted" id="summaryCampus"></div>
         <ul class="cart-items" id="cartList"></ul>
@@ -165,12 +168,12 @@
           </div>
         </div>
         <button type="submit">Place Order</button>
-        <div class="success" id="orderSuccess" style="display:none;">Thank you! Your order has been placed! 🎉</div>
+        <div class="success hidden" id="orderSuccess">Thank you! Your order has been placed! 🎉</div>
       </div>
     </form>
   </div>
   <script>
-    // Menu data
+    // Data
     const menuItems = [
       { name: "Iced Tea", price: 25 },
       { name: "Iced Coffee", price: 30 },
@@ -180,12 +183,12 @@
       { name: "Muffin", price: 17 }
     ];
 
-    // Store state
+    // State
     let chosenCampus = '';
     let cart = [];
     let pickupTime = '';
 
-    // DOM elements
+    // Elements
     const campusStep = document.getElementById("campusStep");
     const menuStep = document.getElementById("menuStep");
     const summaryStep = document.getElementById("summaryStep");
@@ -199,50 +202,61 @@
     const summaryTotal = document.getElementById("summaryTotal");
     const orderSuccess = document.getElementById("orderSuccess");
 
-    // Render menu
+    // Navigation buttons
+    const nextBtn = document.getElementById("nextBtn");
+    const toCampusBtn = document.getElementById("toCampusBtn");
+    const reviewBtn = document.getElementById("reviewBtn");
+    const toMenuBtn = document.getElementById("toMenuBtn");
+
+    // MENU: Render menu
     function renderMenu() {
       menuList.innerHTML = '';
       menuItems.forEach((item, idx) => {
         const li = document.createElement('li');
         li.innerHTML = `
           <span>${item.name} - R${item.price}</span>
-          <button type="button" onclick="addToCart(${idx})">Add</button>
+          <button type="button" data-idx="${idx}">Add</button>
         `;
         menuList.appendChild(li);
       });
+      menuList.querySelectorAll('button').forEach(btn => {
+        btn.onclick = function() {
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          cart.push(menuItems[idx]);
+          alert(menuItems[idx].name + " added to order.");
+        };
+      });
     }
 
-    // Add menu item to cart
-    window.addToCart = function(idx) {
-      cart.push(menuItems[idx]);
-      alert(menuItems[idx].name + " added to order.");
-    };
-
-    // Navigation functions
-    window.goToMenu = function() {
+    // Campus → Menu
+    nextBtn.onclick = function() {
       if (campusSelect.value === "") {
         alert("Please select a campus.");
         return;
       }
       chosenCampus = campusSelect.value;
-      campusStep.style.display = "none";
-      menuStep.style.display = "";
-      summaryStep.style.display = "none";
+      campusStep.classList.add('hidden');
+      menuStep.classList.remove('hidden');
+      summaryStep.classList.add('hidden');
       campusName.textContent = "Campus: " + chosenCampus;
       renderMenu();
       cart = [];
       pickupTimeInput.value = "";
+      orderSuccess.classList.add('hidden');
     };
 
-    window.goToCampus = function() {
-      campusStep.style.display = "";
-      menuStep.style.display = "none";
-      summaryStep.style.display = "none";
-      orderSuccess.style.display = "none";
+    // Menu → Campus
+    toCampusBtn.onclick = function() {
+      campusStep.classList.remove('hidden');
+      menuStep.classList.add('hidden');
+      summaryStep.classList.add('hidden');
+      orderSuccess.classList.add('hidden');
       cart = [];
+      pickupTimeInput.value = "";
     };
 
-    window.goToSummary = function() {
+    // Menu → Summary
+    reviewBtn.onclick = function() {
       pickupTime = pickupTimeInput.value;
       if (!cart.length) {
         alert("Please add at least one item to your order!");
@@ -252,9 +266,17 @@
         alert("Please set a pickup time.");
         return;
       }
-      menuStep.style.display = "none";
-      summaryStep.style.display = "";
+      menuStep.classList.add('hidden');
+      summaryStep.classList.remove('hidden');
       renderSummary();
+    };
+
+    // Summary → Menu
+    toMenuBtn.onclick = function() {
+      menuStep.classList.remove('hidden');
+      summaryStep.classList.add('hidden');
+      orderSuccess.classList.add('hidden');
+      pickupTimeInput.value = "";
     };
 
     // Render summary
@@ -268,22 +290,22 @@
       summaryCampus.textContent = "Campus: " + chosenCampus;
       summaryPickup.textContent = pickupTime;
       summaryTotal.textContent = cart.reduce((sum, i) => sum + i.price, 0);
-      orderSuccess.style.display = "none";
+      orderSuccess.classList.add('hidden');
     }
 
     // Place order (fake!)
     document.getElementById("vossieForm").onsubmit = function(e) {
       e.preventDefault();
-      orderSuccess.style.display = "";
+      orderSuccess.classList.remove('hidden');
       setTimeout(() => {
         // Reset to start after 2.6 seconds
-        campusStep.style.display = "";
-        summaryStep.style.display = "none";
+        campusStep.classList.remove('hidden');
+        summaryStep.classList.add('hidden');
         campusSelect.value = "";
         cart = [];
         pickupTime = '';
         pickupTimeInput.value = "";
-        orderSuccess.style.display = "none";
+        orderSuccess.classList.add('hidden');
       }, 2600);
     };
   </script>
