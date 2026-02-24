@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vossie Grub</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fffbe7;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 440px;
+      margin: 40px auto 0 auto;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 2px 12px #eee;
+      padding: 32px;
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+    h2 {
+      color: #F9A826;
+      font-weight: bold;
+      margin-top: 8px;
+      margin-bottom: 10px;
+      font-size: 1.4em;
+    }
+    select, input[type="time"] {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.08em;
+      border-radius: 8px;
+      border: 1.2px solid #ddd;
+      margin-top: 8px;
+      margin-bottom: 16px;
+    }
+    button {
+      background: #F9A826;
+      color: #222;
+      font-size: 1em;
+      font-weight: bold;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 7px;
+      box-shadow: 0 1px 4px #fffbe7a8;
+      cursor: pointer;
+      margin: 7px 0;
+      transition: background .19s;
+    }
+    button:hover {
+      background: #fcb600;
+    }
+    .menu-list {
+      padding-left: 0;
+    }
+    .menu-list li {
+      list-style: none;
+      margin: 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cart-items {
+      padding-left: 0px;
+    }
+    .cart-items li {
+      list-style: none;
+      margin: 3px 0;
+      color: #48514e;
+      font-size: 1em;
+    }
+    .muted {
+      color: #999;
+      font-size: .95em;
+    }
+    .backBtn {
+      background: #ece9c1;
+      color: #555;
+      font-weight: normal;
+      margin-bottom: 15px;
+      box-shadow: none;
+    }
+    .summary {
+      border-top: 1px dashed #f9a82677;
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .success {
+      color: green;
+      margin: 22px 0 0 0;
+      font-size: 1.1em;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <!-- Simple SVG Logo -->
+      <svg width="180" height="54" viewBox="0 0 180 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="3" y="3" width="174" height="48" rx="10" fill="#F9A826" stroke="#333" stroke-width="4"></rect>
+        <text x="26" y="35" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-size="28" fill="#333">
+          Vossie Grub
+        </text>
+        <circle cx="160" cy="27" r="13" fill="#fffbe7" stroke="#333" stroke-width="2"></circle>
+        <path d="M160 22v8M156 27h8" stroke="#F9A826" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <h2>Quick Campus Food Orders</h2>
+    </header>
+    <form id="vossieForm" autocomplete="off">
+      <!-- Step 1: Select Campus -->
+      <div id="campusStep">
+        <label for="campusSelect" style="font-weight: 600; font-size: 1.1em;">Choose your campus</label>
+        <select id="campusSelect" required>
+          <option value="">-- Select a campus --</option>
+          <option>Cape Town - Tygervalley</option>
+          <option>Cape Town - Mowbray</option>
+          <option>Durban (Umhlanga)</option>
+          <option>Nelson Mandela Bay (Port Elizabeth)</option>
+          <option>East London</option>
+          <option>Bedfordview</option>
+          <option>Midrand</option>
+          <option>Vaal</option>
+          <option>Pretoria</option>
+          <option>Bloemfontein</option>
+          <option>Mbombela</option>
+          <option>Potchefstroom</option>
+        </select>
+        <button type="button" onclick="goToMenu()">Next</button>
+      </div>
+
+      <!-- Step 2: Menu Selection -->
+      <div id="menuStep" style="display:none">
+        <button type="button" class="backBtn" onclick="goToCampus()">← Back</button>
+        <div class="muted" id="campusName"></div>
+        <label style="font-weight: 600;">Choose items to order:</label>
+        <ul class="menu-list" id="menuList"></ul>
+        <div>
+          <label for="pickupTime" style="font-weight: 600;">Pickup time:</label>
+          <input type="time" id="pickupTime" required/>
+        </div>
+        <button type="button" onclick="goToSummary()">Review Order</button>
+      </div>
+
+      <!-- Step 3: Order Summary -->
+      <div id="summaryStep" style="display:none">
+        <button type="button" class="backBtn" onclick="goToMenu()">← Back</button>
+        <h3>Order Summary</h3>
+        <div class="muted" id="summaryCampus"></div>
+        <ul class="cart-items" id="cartList"></ul>
+        <div class="summary">
+          <div>Pickup time: <b id="summaryPickup"></b></div>
+          <div style="margin: 6px 0;">
+            <b>Total: R<span id="summaryTotal"></span></b>
+          </div>
+        </div>
+        <button type="submit">Place Order</button>
+        <div class="success" id="orderSuccess" style="display:none;">Thank you! Your order has been placed! 🎉</div>
+      </div>
+    </form>
+  </div>
+  <script>
+    // Menu data
+    const menuItems = [
+      { name: "Iced Tea", price: 25 },
+      { name: "Iced Coffee", price: 30 },
+      { name: "Chicken Mayo Sandwich", price: 35 },
+      { name: "Fruit Cup", price: 20 },
+      { name: "Veg Wrap", price: 32 },
+      { name: "Muffin", price: 17 }
+    ];
+
+    // Store state
+    let chosenCampus = '';
+    let cart = [];
+    let pickupTime = '';
+
+    // DOM elements
+    const campusStep = document.getElementById("campusStep");
+    const menuStep = document.getElementById("menuStep");
+    const summaryStep = document.getElementById("summaryStep");
+    const campusSelect = document.getElementById("campusSelect");
+    const campusName = document.getElementById("campusName");
+    const menuList = document.getElementById("menuList");
+    const pickupTimeInput = document.getElementById("pickupTime");
+    const cartList = document.getElementById("cartList");
+    const summaryCampus = document.getElementById("summaryCampus");
+    const summaryPickup = document.getElementById("summaryPickup");
+    const summaryTotal = document.getElementById("summaryTotal");
+    const orderSuccess = document.getElementById("orderSuccess");
+
+    // Render menu
+    function renderMenu() {
+      menuList.innerHTML = '';
+      menuItems.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <span>${item.name} - R${item.price}</span>
+          <button type="button" onclick="addToCart(${idx})">Add</button>
+        `;
+        menuList.appendChild(li);
+      });
+    }
+
+    // Add menu item to cart
+    window.addToCart = function(idx) {
+      cart.push(menuItems[idx]);
+      alert(menuItems[idx].name + " added to order.");
+    };
+
+    // Navigation functions
+    window.goToMenu = function() {
+      if (campusSelect.value === "") {
+        alert("Please select a campus.");
+        return;
+      }
+      chosenCampus = campusSelect.value;
+      campusStep.style.display = "none";
+      menuStep.style.display = "";
+      summaryStep.style.display = "none";
+      campusName.textContent = "Campus: " + chosenCampus;
+      renderMenu();
+      cart = [];
+      pickupTimeInput.value = "";
+    };
+
+    window.goToCampus = function() {
+      campusStep.style.display = "";
+      menuStep.style.display = "none";
+      summaryStep.style.display = "none";
+      orderSuccess.style.display = "none";
+      cart = [];
+    };
+
+    window.goToSummary = function() {
+      pickupTime = pickupTimeInput.value;
+      if (!cart.length) {
+        alert("Please add at least one item to your order!");
+        return;
+      }
+      if (pickupTime === "") {
+        alert("Please set a pickup time.");
+        return;
+      }
+      menuStep.style.display = "none";
+      summaryStep.style.display = "";
+      renderSummary();
+    };
+
+    // Render summary
+    function renderSummary() {
+      cartList.innerHTML = "";
+      cart.forEach(item => {
+        let li = document.createElement('li');
+        li.textContent = item.name + ' - R' + item.price;
+        cartList.appendChild(li);
+      });
+      summaryCampus.textContent = "Campus: " + chosenCampus;
+      summaryPickup.textContent = pickupTime;
+      summaryTotal.textContent = cart.reduce((sum, i) => sum + i.price, 0);
+      orderSuccess.style.display = "none";
+    }
+
+    // Place order (fake!)
+    document.getElementById("vossieForm").onsubmit = function(e) {
+      e.preventDefault();
+      orderSuccess.style.display = "";
+      setTimeout(() => {
+        // Reset to start after 2.6 seconds
+        campusStep.style.display = "";
+        summaryStep.style.display = "none";
+        campusSelect.value = "";
+        cart = [];
+        pickupTime = '';
+        pickupTimeInput.value = "";
+        orderSuccess.style.display = "none";
+      }, 2600);
+    };
+  </script>
+</body>
+</html>
