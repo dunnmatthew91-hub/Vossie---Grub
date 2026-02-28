@@ -39,7 +39,7 @@
       border-radius: 8px;
       border: 1.2px solid #ddd;
       margin-top: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 8px;
     }
     button {
       background: #F9A826;
@@ -109,8 +109,7 @@
 <body>
   <div class="container">
     <header>
-      <!-- Simple SVG Logo -->
-      <svg width="180" height="54" viewBox="0 0 180 54" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width="180" height="54" viewBox="0 0 180 54" fill="none">
         <rect x="3" y="3" width="174" height="48" rx="10" fill="#F9A826" stroke="#333" stroke-width="4"></rect>
         <text x="26" y="35" font-family="Arial Rounded MT Bold, Arial, sans-serif" font-size="28" fill="#333">
           Vossie Grub
@@ -120,10 +119,12 @@
       </svg>
       <h2>Quick Campus Food Orders</h2>
     </header>
+
     <form id="vossieForm" autocomplete="off">
-      <!-- Step 1: Select Campus -->
+
+      <!-- Campus -->
       <div id="campusStep">
-        <label for="campusSelect" style="font-weight: 600; font-size: 1.1em;">Choose your campus</label>
+        <label style="font-weight:600;">Choose your campus</label>
         <select id="campusSelect" required>
           <option value="">-- Select a campus --</option>
           <option>Cape Town - Tygervalley</option>
@@ -142,231 +143,213 @@
         <button type="button" id="nextBtn">Next</button>
       </div>
 
-      <!-- Step 2: Menu Selection -->
+      <!-- Menu -->
       <div id="menuStep" class="hidden">
         <button type="button" class="backBtn" id="toCampusBtn">← Back</button>
         <div class="muted" id="campusName"></div>
-        <label style="font-weight: 600;">Choose items to order:</label>
+
+        <label style="font-weight:600;">Choose items:</label>
         <ul class="menu-list" id="menuList"></ul>
-        <div>
-          <label for="pickupTime" style="font-weight: 600;">Pickup time:</label>
-          <input type="time" id="pickupTime" required/>
-          <div class="muted" style="margin-top: 6px;">
-            On some phones, tap outside the picker or use your keyboard’s 'Done'/'Enter' to select!
-          </div>
-        </div>
+
+        <label style="font-weight:600;">Pickup time:</label>
+        <input type="time"
+               id="pickupTime"
+               min="07:00"
+               max="18:00"
+               step="60"
+               required>
+
+        <div id="timePreview" class="muted"></div>
+
         <button type="button" id="reviewBtn">Review Order</button>
       </div>
 
-      <!-- Step 3: Order Summary -->
+      <!-- Summary -->
       <div id="summaryStep" class="hidden">
         <button type="button" class="backBtn" id="toMenuBtn">← Back</button>
+
         <h3>Order Summary</h3>
         <div class="muted" id="summaryCampus"></div>
+
         <ul class="cart-items" id="cartList"></ul>
+
         <div class="summary">
-          <div>Pickup time: <b id="summaryPickup"></b></div>
-          <div style="margin: 6px 0;">
-            <b>Total: R<span id="summaryTotal"></span></b>
+          Pickup time: <b id="summaryPickup"></b><br>
+          <b>Total: R<span id="summaryTotal"></span></b>
+        </div>
+
+        <button type="submit">Place Order</button>
+
+        <div id="orderTracking" class="order-tracking hidden">
+          <div id="orderStatus" style="
+            margin-top:16px;
+            padding:12px;
+            border-radius:10px;
+            background:#f9a82611;
+            border:1px solid #ffe2ab;
+            text-align:center;">
+            Order Status: <span id="orderStatusMsg">Order Placed</span>
           </div>
         </div>
-        <button type="submit" id="placeOrderBtn">Place Order</button>
-        <!-- Live order tracking bar -->
-        <div class="order-tracking hidden" id="orderTracking">
-          <div id="orderStatus" style="
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 10px;
-            background: #f9a82611;
-            color: #444;
-            font-weight: 600;
-            font-size: 1.05em;
-            border: 1px solid #ffe2ab;
-            text-align: center;
-          ">Order Status: <span id="orderStatusMsg">Order Placed</span></div>
+
+        <div id="orderSuccess" class="success hidden">
+          Thank you! Your order has been placed! 🎉
         </div>
-        <div class="success hidden" id="orderSuccess">Thank you! Your order has been placed! 🎉</div>
       </div>
+
     </form>
   </div>
-  <script>
-    // Data
-    const menuItems = [
-      { name: "Coca Cola", price: 22 },
-      { name: "Water (Still or Sparkling)", price: 18 },
-      { name: "Ice Tea", price: 20 },
-      { name: "Hot Dog", price: 28 },
-      { name: "Crispy Creme Donut", price: 25 },
-      { name: "Energy Bar", price: 30 }
-    ];
 
-    // State
-    let chosenCampus = '';
-    let cart = [];
-    let pickupTime = '';
-    let orderStatusTimer = null;
+<script>
+const menuItems = [
+  { name: "Coca Cola", price: 22 },
+  { name: "Water", price: 18 },
+  { name: "Ice Tea", price: 20 },
+  { name: "Hot Dog", price: 28 },
+  { name: "Crispy Creme Donut", price: 25 },
+  { name: "Energy Bar", price: 30 }
+];
 
-    // Elements
-    const campusStep = document.getElementById("campusStep");
-    const menuStep = document.getElementById("menuStep");
-    const summaryStep = document.getElementById("summaryStep");
-    const campusSelect = document.getElementById("campusSelect");
-    const campusName = document.getElementById("campusName");
-    const menuList = document.getElementById("menuList");
-    const pickupTimeInput = document.getElementById("pickupTime");
-    const cartList = document.getElementById("cartList");
-    const summaryCampus = document.getElementById("summaryCampus");
-    const summaryPickup = document.getElementById("summaryPickup");
-    const summaryTotal = document.getElementById("summaryTotal");
-    const orderSuccess = document.getElementById("orderSuccess");
-    const orderTracking = document.getElementById("orderTracking");
-    const orderStatusMsg = document.getElementById("orderStatusMsg");
+let chosenCampus = '';
+let cart = [];
+let pickupTime = '';
+let orderStatusTimer = null;
 
-    // Navigation buttons
-    const nextBtn = document.getElementById("nextBtn");
-    const toCampusBtn = document.getElementById("toCampusBtn");
-    const reviewBtn = document.getElementById("reviewBtn");
-    const toMenuBtn = document.getElementById("toMenuBtn");
-    const placeOrderBtn = document.getElementById("placeOrderBtn");
+const campusStep = document.getElementById("campusStep");
+const menuStep = document.getElementById("menuStep");
+const summaryStep = document.getElementById("summaryStep");
 
-    // MENU: Render menu
-    function renderMenu() {
-      menuList.innerHTML = '';
-      menuItems.forEach((item, idx) => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          <span>${item.name} - R${item.price}</span>
-          <button type="button" data-idx="${idx}">Add</button>
-        `;
-        menuList.appendChild(li);
-      });
-      menuList.querySelectorAll('button').forEach(btn => {
-        btn.onclick = function() {
-          const idx = parseInt(btn.getAttribute('data-idx'));
-          cart.push(menuItems[idx]);
-          alert(menuItems[idx].name + " added to order.");
-        };
-      });
+const campusSelect = document.getElementById("campusSelect");
+const campusName = document.getElementById("campusName");
+
+const menuList = document.getElementById("menuList");
+const pickupTimeInput = document.getElementById("pickupTime");
+
+const timePreview = document.getElementById("timePreview");
+
+const cartList = document.getElementById("cartList");
+const summaryCampus = document.getElementById("summaryCampus");
+const summaryPickup = document.getElementById("summaryPickup");
+const summaryTotal = document.getElementById("summaryTotal");
+
+const orderSuccess = document.getElementById("orderSuccess");
+const orderTracking = document.getElementById("orderTracking");
+const orderStatusMsg = document.getElementById("orderStatusMsg");
+
+function renderMenu(){
+  menuList.innerHTML = '';
+  menuItems.forEach((item, idx) => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <span>${item.name} - R${item.price}</span>
+      <button type="button" data-idx="${idx}">Add</button>
+    `;
+    menuList.appendChild(li);
+  });
+
+  menuList.querySelectorAll("button").forEach(btn=>{
+    btn.onclick = function(){
+      const idx = btn.dataset.idx;
+      cart.push(menuItems[idx]);
+      alert(menuItems[idx].name + " added");
     }
+  });
+}
 
-    // Campus → Menu
-    nextBtn.onclick = function() {
-      if (campusSelect.value === "") {
-        alert("Please select a campus.");
-        return;
-      }
-      chosenCampus = campusSelect.value;
-      campusStep.classList.add('hidden');
-      menuStep.classList.remove('hidden');
-      summaryStep.classList.add('hidden');
-      campusName.textContent = "Campus: " + chosenCampus;
-      renderMenu();
-      cart = [];
-      pickupTimeInput.value = "";
-      orderSuccess.classList.add('hidden');
-    };
+document.getElementById("nextBtn").onclick = () => {
+  if(!campusSelect.value) return alert("Select campus");
 
-    // Menu → Campus
-    toCampusBtn.onclick = function() {
-      campusStep.classList.remove('hidden');
-      menuStep.classList.add('hidden');
-      summaryStep.classList.add('hidden');
-      orderSuccess.classList.add('hidden');
-      orderTracking.classList.add('hidden');
-      cart = [];
-      pickupTimeInput.value = "";
-      clearOrderStatusTimer();
-    };
+  chosenCampus = campusSelect.value;
+  campusStep.classList.add("hidden");
+  menuStep.classList.remove("hidden");
 
-    // Menu → Summary
-    reviewBtn.onclick = function() {
-      pickupTime = pickupTimeInput.value;
-      if (!cart.length) {
-        alert("Please add at least one item to your order!");
-        return;
-      }
-      if (pickupTime === "") {
-        alert("Please set a pickup time.");
-        return;
-      }
-      menuStep.classList.add('hidden');
-      summaryStep.classList.remove('hidden');
-      renderSummary();
-    };
+  campusName.textContent = "Campus: " + chosenCampus;
 
-    // Summary → Menu
-    toMenuBtn.onclick = function() {
-      menuStep.classList.remove('hidden');
-      summaryStep.classList.add('hidden');
-      orderSuccess.classList.add('hidden');
-      orderTracking.classList.add('hidden');
-      pickupTimeInput.value = "";
-      clearOrderStatusTimer();
-    };
+  cart = [];
+  pickupTimeInput.value = "";
+  timePreview.textContent = "";
 
-    // Render summary
-    function renderSummary() {
-      cartList.innerHTML = "";
-      cart.forEach(item => {
-        let li = document.createElement('li');
-        li.textContent = item.name + ' - R' + item.price;
-        cartList.appendChild(li);
-      });
-      summaryCampus.textContent = "Campus: " + chosenCampus;
-      summaryPickup.textContent = pickupTime;
-      summaryTotal.textContent = cart.reduce((sum, i) => sum + i.price, 0);
-      orderSuccess.classList.add('hidden');
-      orderTracking.classList.add('hidden');
-      orderStatusMsg.textContent = "Order Placed";
-      clearOrderStatusTimer();
+  renderMenu();
+};
+
+document.getElementById("toCampusBtn").onclick = () => {
+  campusStep.classList.remove("hidden");
+  menuStep.classList.add("hidden");
+  summaryStep.classList.add("hidden");
+
+  pickupTimeInput.value = "";
+  timePreview.textContent = "";
+};
+
+pickupTimeInput.addEventListener("change", function(){
+  timePreview.textContent = "Selected time: " + pickupTimeInput.value;
+});
+
+document.getElementById("reviewBtn").onclick = () => {
+
+  pickupTime = pickupTimeInput.value;
+
+  if(cart.length === 0)
+    return alert("Add items");
+
+  if(!pickupTime)
+    return alert("Select time");
+
+  menuStep.classList.add("hidden");
+  summaryStep.classList.remove("hidden");
+
+  renderSummary();
+};
+
+document.getElementById("toMenuBtn").onclick = () => {
+  summaryStep.classList.add("hidden");
+  menuStep.classList.remove("hidden");
+};
+
+function renderSummary(){
+  cartList.innerHTML = "";
+
+  cart.forEach(item=>{
+    const li = document.createElement("li");
+    li.textContent = item.name + " - R" + item.price;
+    cartList.appendChild(li);
+  });
+
+  summaryCampus.textContent = "Campus: " + chosenCampus;
+  summaryPickup.textContent = pickupTime;
+  summaryTotal.textContent =
+    cart.reduce((sum,i)=>sum+i.price,0);
+}
+
+function startOrderTracking(){
+  orderTracking.classList.remove("hidden");
+
+  const steps = [
+    "Preparing your order...",
+    "Almost ready...",
+    "Ready for pickup!"
+  ];
+
+  let i = 0;
+
+  function next(){
+    if(i < steps.length){
+      orderStatusMsg.textContent = steps[i];
+      i++;
+      orderStatusTimer = setTimeout(next, 1500);
     }
+  }
 
-    // Fake order tracking logic
-    function startOrderTracking() {
-      orderTracking.classList.remove('hidden');
-      orderStatusMsg.textContent = "Order Placed";
-      let steps = [
-        { msg: "Preparing your order...", delay: 1700 },
-        { msg: "Almost ready...", delay: 1500 },
-        { msg: "Ready for Pickup! 🚀", delay: 1200 }
-      ];
-      let i = 0;
+  next();
+}
 
-      function advanceStep() {
-        if (i < steps.length) {
-          orderStatusMsg.textContent = steps[i].msg;
-          orderStatusTimer = setTimeout(advanceStep, steps[i].delay);
-          i++;
-        }
-      }
-      orderStatusTimer = setTimeout(advanceStep, steps[0].delay);
-    }
+document.getElementById("vossieForm").onsubmit = function(e){
+  e.preventDefault();
 
-    function clearOrderStatusTimer() {
-      if (orderStatusTimer) {
-        clearTimeout(orderStatusTimer);
-        orderStatusTimer = null;
-      }
-    }
+  orderSuccess.classList.remove("hidden");
+  startOrderTracking();
+};
+</script>
 
-    // Place order (fake!) with live tracking
-    document.getElementById("vossieForm").onsubmit = function(e) {
-      e.preventDefault();
-      orderSuccess.classList.remove('hidden');
-      startOrderTracking();
-      setTimeout(() => {
-        // Reset to start after 2.6 seconds from "ready for pickup"
-        campusStep.classList.remove('hidden');
-        summaryStep.classList.add('hidden');
-        campusSelect.value = "";
-        cart = [];
-        pickupTime = '';
-        pickupTimeInput.value = "";
-        orderSuccess.classList.add('hidden');
-        orderTracking.classList.add('hidden');
-        clearOrderStatusTimer();
-      }, 2600 + 1700 + 1500 + 1200);
-    };
-  </script>
 </body>
 </html>
