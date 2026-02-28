@@ -98,6 +98,9 @@
       font-size: 1.1em;
       font-weight: 600;
     }
+    .order-tracking {
+      margin-top: 14px;
+    }
     .hidden {
       display: none !important;
     }
@@ -167,7 +170,21 @@
             <b>Total: R<span id="summaryTotal"></span></b>
           </div>
         </div>
-        <button type="submit">Place Order</button>
+        <button type="submit" id="placeOrderBtn">Place Order</button>
+        <!-- Live order tracking bar -->
+        <div class="order-tracking hidden" id="orderTracking">
+          <div id="orderStatus" style="
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 10px;
+            background: #f9a82611;
+            color: #444;
+            font-weight: 600;
+            font-size: 1.05em;
+            border: 1px solid #ffe2ab;
+            text-align: center;
+          ">Order Status: <span id="orderStatusMsg">Order Placed</span></div>
+        </div>
         <div class="success hidden" id="orderSuccess">Thank you! Your order has been placed! 🎉</div>
       </div>
     </form>
@@ -187,6 +204,7 @@
     let chosenCampus = '';
     let cart = [];
     let pickupTime = '';
+    let orderStatusTimer = null;
 
     // Elements
     const campusStep = document.getElementById("campusStep");
@@ -201,12 +219,15 @@
     const summaryPickup = document.getElementById("summaryPickup");
     const summaryTotal = document.getElementById("summaryTotal");
     const orderSuccess = document.getElementById("orderSuccess");
+    const orderTracking = document.getElementById("orderTracking");
+    const orderStatusMsg = document.getElementById("orderStatusMsg");
 
     // Navigation buttons
     const nextBtn = document.getElementById("nextBtn");
     const toCampusBtn = document.getElementById("toCampusBtn");
     const reviewBtn = document.getElementById("reviewBtn");
     const toMenuBtn = document.getElementById("toMenuBtn");
+    const placeOrderBtn = document.getElementById("placeOrderBtn");
 
     // MENU: Render menu
     function renderMenu() {
@@ -251,8 +272,10 @@
       menuStep.classList.add('hidden');
       summaryStep.classList.add('hidden');
       orderSuccess.classList.add('hidden');
+      orderTracking.classList.add('hidden');
       cart = [];
       pickupTimeInput.value = "";
+      clearOrderStatusTimer();
     };
 
     // Menu → Summary
@@ -276,7 +299,9 @@
       menuStep.classList.remove('hidden');
       summaryStep.classList.add('hidden');
       orderSuccess.classList.add('hidden');
+      orderTracking.classList.add('hidden');
       pickupTimeInput.value = "";
+      clearOrderStatusTimer();
     };
 
     // Render summary
@@ -291,14 +316,46 @@
       summaryPickup.textContent = pickupTime;
       summaryTotal.textContent = cart.reduce((sum, i) => sum + i.price, 0);
       orderSuccess.classList.add('hidden');
+      orderTracking.classList.add('hidden');
+      orderStatusMsg.textContent = "Order Placed";
+      clearOrderStatusTimer();
     }
 
-    // Place order (fake!)
+    // Fake order tracking logic
+    function startOrderTracking() {
+      orderTracking.classList.remove('hidden');
+      orderStatusMsg.textContent = "Order Placed";
+      let steps = [
+        { msg: "Preparing your order...", delay: 1700 },
+        { msg: "Almost ready...", delay: 1500 },
+        { msg: "Ready for Pickup! 🚀", delay: 1200 }
+      ];
+      let i = 0;
+
+      function advanceStep() {
+        if (i < steps.length) {
+          orderStatusMsg.textContent = steps[i].msg;
+          orderStatusTimer = setTimeout(advanceStep, steps[i].delay);
+          i++;
+        }
+      }
+      orderStatusTimer = setTimeout(advanceStep, steps[0].delay);
+    }
+
+    function clearOrderStatusTimer() {
+      if (orderStatusTimer) {
+        clearTimeout(orderStatusTimer);
+        orderStatusTimer = null;
+      }
+    }
+
+    // Place order (fake!) with live tracking
     document.getElementById("vossieForm").onsubmit = function(e) {
       e.preventDefault();
       orderSuccess.classList.remove('hidden');
+      startOrderTracking();
       setTimeout(() => {
-        // Reset to start after 2.6 seconds
+        // Reset to start after 2.6 seconds from "ready for pickup"
         campusStep.classList.remove('hidden');
         summaryStep.classList.add('hidden');
         campusSelect.value = "";
@@ -306,7 +363,9 @@
         pickupTime = '';
         pickupTimeInput.value = "";
         orderSuccess.classList.add('hidden');
-      }, 2600);
+        orderTracking.classList.add('hidden');
+        clearOrderStatusTimer();
+      }, 2600 + 1700 + 1500 + 1200);
     };
   </script>
 </body>
